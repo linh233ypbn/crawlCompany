@@ -1,13 +1,4 @@
 package module;
-//public String name;
-//public String behavior;
-//public String address;
-//public String phoneNumber;
-//public String representative;
-//public String link;
-//public String date;
-//public String email;
-//public String taxCode;
 public enum Info {
     NAME,
     BEHAVIOR,
@@ -17,5 +8,6 @@ public enum Info {
     LINK,
     DATE,
     EMAIL,
-    TAX_CODE
+    TAX_CODE,
+    ID_DISTRICT
 }

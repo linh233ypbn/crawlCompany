@@ -1,5 +1,6 @@
 package crawl.website;
 
+import adapter.AdapterDB;
 import module.Commune;
 import module.Company;
 import module.District;
@@ -14,6 +15,7 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.firefox.FirefoxDriver;
 
 import java.io.IOException;
 import java.net.SocketTimeoutException;
@@ -25,13 +27,14 @@ public class Vinabiz {
     public static final String LOGIN_URL = "https://vinabiz.org/account/login";
     public static final String EMAIL = "thanhngociso99@gmail.com";
     public static final String PASSWORD = "Yenphong99@";
-    public static List<Company> allCompanies = null;
+    public static ArrayList<Company> allCompanies = null;
     public static Document doc = null;
 
     public static WebDriver driver;
 
     public Vinabiz(){
-        System.setProperty("webdriver.chrome.driver", "chromedriver2.exe");
+        System.setProperty("webdriver.chrome.driver", "chromedriver.exe");
+        System.setProperty("webdriver.gecko.driver", "geckodriver.exe");
         allCompanies = new ArrayList<>();
 
         driver = new ChromeDriver();
@@ -48,12 +51,20 @@ public class Vinabiz {
     }
 
     public void crawlProvince(String provinceUrl){
-        parseHTMLFrom(provinceUrl);
+        String provinceName = "empty";
+        provinceUrl = "https://vinabiz.org" + provinceUrl;
+        parseHTMLFrom( provinceUrl);
+        try {
+            provinceName = doc.getElementsByClass("page-title txt-color-blueDark")
+                    .get(0)
+                    .childNode(7)
+                    .childNode(1)
+                    .childNode(0).toString();
 
-        Elements elements = doc.getElementsByClass("btn btn-labeled btn-default btn-block");
-        for(Element e : elements) {
-            String str = e.attr("href");
-            crawlDistrict(str);
+            getCompany(provinceUrl, 11000, 11000);
+            AdapterDB.addCompanies(allCompanies);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -75,25 +86,26 @@ public class Vinabiz {
             temp.link = BASE_URL + e.attr("href");
             gb.communies.add(temp);
             try {
-                getCompany(temp.link);
+                getCompany(temp.link, 10051, 10100);
             } catch (IOException ex) {
                 ex.printStackTrace();
             }
         }
     }
 
-    public List<Company> getCompany(String  link) throws IOException {
+    public List<Company> getCompany(String  link, int start, int end) throws IOException {
         List<Company> companyList = new ArrayList<>();
-        String page = "/10";
-        int index = 10;
+        String page = "/" + start;
+        int index = start;
         do {
+            System.out.println("Page "+ index);
             if(!parseHTMLFrom(link + page))
                 break;
             Elements companies = doc.getElementsByClass("row margin-right-15 margin-left-10");
             crawlCompany(companyList, companies);
             index++;
             page = "/" + index;
-        } while(index < 25);
+        } while(index < end);
         return companyList;
     }
 
@@ -118,8 +130,11 @@ public class Vinabiz {
             company.phoneNumber     = getCompanyInfo(data, Info.PHONE_NUMBER);
             company.email           = getCompanyInfo(data, Info.EMAIL);
             company.taxCode         = getCompanyInfo(data, Info.TAX_CODE);
+            company.idDistrict      = getCompanyInfo(data, Info.ID_DISTRICT);
 
-            if(company.phoneNumber.isEmpty() && company.email.isEmpty()) continue;
+
+            if(company.phoneNumber.isEmpty() || company.phoneNumber.equals(""))
+                continue;
 
             System.out.println(company.phoneNumber);
 
@@ -187,19 +202,32 @@ public class Vinabiz {
                     break;
                 case DATE:
                     result = element.childNode(1).childNode(4).childNode(7).childNode(0).toString();
+                    try{
+                        String date[] = result.split("/");
+                        result = date[2] + "-" + date[1] + "-" + date[0];
+                    } catch (Exception e){
+                        result = "null";
+                    }
                     break;
+                case ID_DISTRICT:
                 case PHONE_NUMBER:
                 case EMAIL:
                 case TAX_CODE:
                     result = getInfoBySelenium(info);
                     break;
             }
+            result.replace('\'', '`');
         } catch (Exception e){
             System.err.println("Failed to load " + info);
         }
         return result;
     }
 
+    public String getIDDistrictFromAddress(String address){
+        String query = "select iddistrict from district where district_name like '" + address + "'";
+        String idDistrict = AdapterDB.getInfoQuery(query);
+        return idDistrict;
+    }
     public String getInfoBySelenium(Info info){
         WebElement webElement = null;
         String result = "";
@@ -214,10 +242,16 @@ public class Vinabiz {
                 case TAX_CODE:
                     webElement = driver.findElement(By.xpath("//div[@class='widget-body no-padding']/div/p/b[1]"));
                     break;
+                case ID_DISTRICT:
+                    webElement = driver.findElement(By.xpath("//h1[@class='page-title txt-color-blueDark']/span/span/a[2]"));
+                    break;
             }
             result = webElement.getText();
+            if(info == Info.ID_DISTRICT)
+                result = getIDDistrictFromAddress(result);
         } catch (Exception ex){
-            ex.printStackTrace();
+//            ex.printStackTrace();
+            System.out.println(info + ": empty");
         }
         return result;
     }
