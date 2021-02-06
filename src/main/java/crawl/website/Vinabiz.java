@@ -31,6 +31,7 @@ public class Vinabiz {
     public static Document doc = null;
 
     public static WebDriver driver;
+    public static int cnt;
 
     public Vinabiz(){
         System.setProperty("webdriver.chrome.driver", "chromedriver.exe");
@@ -48,6 +49,8 @@ public class Vinabiz {
 
         webElement = driver.findElement(By.xpath("//button[contains(@class,'btn btn-primary')]"));
         webElement.click();
+
+        cnt = 0;
     }
 
     public void crawlProvince(String provinceUrl){
@@ -61,11 +64,18 @@ public class Vinabiz {
                     .childNode(1)
                     .childNode(0).toString();
 
-            getCompany(provinceUrl, 11000, 11000);
-            AdapterDB.addCompanies(allCompanies);
+            //getCompany(provinceUrl, 13269, 13500); HCM
+//            getCompany(provinceUrl, 16300, 16400);
+//            getCompany(provinceUrl, 80, 100);
+//            getCompany(provinceUrl, 130, 200); //Long An
+//            getCompany(provinceUrl, 600, 800); //Hai Phong
+//            getCompany(provinceUrl, 8000, 8392); //Ha Noi
+            getCompany(provinceUrl, 8330, 8392);
+            //AdapterDB.addCompanies(allCompanies);
         } catch (Exception e) {
             e.printStackTrace();
         }
+        driver.close();
     }
 
     public void crawlDistrict(String link){
@@ -86,37 +96,48 @@ public class Vinabiz {
             temp.link = BASE_URL + e.attr("href");
             gb.communies.add(temp);
             try {
-                getCompany(temp.link, 10051, 10100);
+                getCompany(temp.link, 13112, 13120);
             } catch (IOException ex) {
                 ex.printStackTrace();
             }
         }
     }
 
-    public List<Company> getCompany(String  link, int start, int end) throws IOException {
-        List<Company> companyList = new ArrayList<>();
+    public void getCompany(String  link, int start, int end) throws IOException {
         String page = "/" + start;
         int index = start;
         do {
-            System.out.println("Page "+ index);
-            if(!parseHTMLFrom(link + page))
-                break;
+            System.err.println("Page "+ index);
+            if(!parseHTMLFrom(link + page)){
+                index++;
+                continue;
+            }
             Elements companies = doc.getElementsByClass("row margin-right-15 margin-left-10");
-            crawlCompany(companyList, companies);
+            crawlCompany(companies);
             index++;
             page = "/" + index;
         } while(index < end);
-        return companyList;
     }
 
-    public void crawlCompany(List<Company> companies, Elements elements) throws IOException {
+    public void crawlCompany(Elements elements) throws IOException {
         for(Element element : elements){
+            System.err.println("=======================[" + cnt++ + "]=======================");
             Company company = new Company();
 
             company.address = getCompanyInfo(element, Info.ADDRESS);
             company.name    = getCompanyInfo(element, Info.NAME);
             company.link    = getCompanyInfo(element, Info.LINK);
+
             if(!isAvailable(element)) continue;
+
+            parseHTMLFrom(company.link);
+
+            company.taxCode = getCompanyInfo(element, Info.TAX_CODE);
+
+            if(AdapterDB.isExists(company.taxCode)) {
+                System.err.println("Exists.!");
+                return;
+            }
 
             Element data = parseHTMLCompany(company.link);
             if(data == null) continue;
@@ -129,28 +150,33 @@ public class Vinabiz {
 
             company.phoneNumber     = getCompanyInfo(data, Info.PHONE_NUMBER);
             company.email           = getCompanyInfo(data, Info.EMAIL);
-            company.taxCode         = getCompanyInfo(data, Info.TAX_CODE);
             company.idDistrict      = getCompanyInfo(data, Info.ID_DISTRICT);
 
 
-            if(company.phoneNumber.isEmpty() || company.phoneNumber.equals(""))
+            if(company.phoneNumber.isEmpty() || company.phoneNumber.equals("")){
+                System.err.println("Ignore.");
                 continue;
+            }
 
             System.out.println(company.phoneNumber);
 
-            companies.add(company);
-            allCompanies.add(company);
+            //allCompanies.add(company);
+            AdapterDB.addCompany(company);
         }
     }
 
     public boolean parseHTMLFrom(String url){
-        try {
-            doc = Jsoup.connect(url).timeout(15000).get();
-        } catch (IOException e) {
-            System.err.println("Failed to load HTML + [" + url + "]");
-            return false;
+        int TRY = 1;
+        while(TRY++ <= 6){
+            try {
+                doc = Jsoup.connect(url).timeout(15000).get();
+                return true;
+            } catch (IOException e) {
+                System.err.println("Failed to load HTML + [" + url + "]");
+                return false;
+            }
         }
-        return true;
+        return false;
     }
 
     public Element parseHTMLCompany(String url){
@@ -209,10 +235,15 @@ public class Vinabiz {
                         result = "null";
                     }
                     break;
+                case TAX_CODE:
+                    Elements elements = doc.getElementsByClass("padding-10");
+                    Element e = elements.get(0);
+                    result = e.childNode(5).childNode(1).childNode(0).toString();
+                    System.out.println("TAX_CODE: " + result);
+                    break;
                 case ID_DISTRICT:
                 case PHONE_NUMBER:
                 case EMAIL:
-                case TAX_CODE:
                     result = getInfoBySelenium(info);
                     break;
             }
@@ -239,9 +270,6 @@ public class Vinabiz {
                 case EMAIL:
                     webElement = driver.findElement(By.xpath("//table[@class='table table-bordered']/tbody/tr[10]/td[2]/a"));
                     break;
-                case TAX_CODE:
-                    webElement = driver.findElement(By.xpath("//div[@class='widget-body no-padding']/div/p/b[1]"));
-                    break;
                 case ID_DISTRICT:
                     webElement = driver.findElement(By.xpath("//h1[@class='page-title txt-color-blueDark']/span/span/a[2]"));
                     break;
@@ -267,11 +295,28 @@ public class Vinabiz {
     public boolean isAvailable(Element element){
         boolean result;
         try {
-            result = element.childNode(1).childNode(1).childNode(1).attr("style") == "";
+            String style = element.childNode(1).childNode(1).childNode(1).attr("style");
+            result = style.isEmpty();
         } catch (Exception e) {
-            System.err.println("Failed to check company Available");
+            System.err.println("Failed to check company Status");
             return false;
         }
         return result;
+    }
+
+    public void updateTaxCode(){
+        String query = "select * from companies where tax_code in (select tax_code from companies group by tax_code having count(tax_code) > 1)";
+        ArrayList<Company> companies = AdapterDB.getCompanies(query);
+        int cnt = 0;
+        System.out.println("TOTAL: " + companies.size());
+        for(Company company : companies){
+            parseHTMLFrom(company.link);
+            Elements elements = doc.getElementsByClass("padding-10");
+            Element e = elements.get(0);
+            String taxCode = e.childNode(5).childNode(1).childNode(0).toString();
+            cnt++;
+            System.out.println(cnt + ". ID: " + company.id + " || TAX: " + taxCode);
+            AdapterDB.executeUpdate("update companies set tax_code = '" + taxCode + "' where id = " + company.id + "");
+        }
     }
 }

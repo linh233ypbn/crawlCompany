@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import static java.sql.DriverManager.getConnection;
 
 public class AdapterDB {
+    public static final int ID              = 0;
     public static final int NAME            = 1;
     public static final int REPRESENTATIVE  = 2;
     public static final int PHONE_NUMBER    = 3;
@@ -76,6 +77,7 @@ public class AdapterDB {
         }
     }
     public static void addCompany(Company company){
+        company.dateInput = java.time.LocalDate.now().toString();
         String query = "insert into companies value (null, "
                 + "'" + company.name + "', "
                 + "'" + company.representative + "', "
@@ -86,18 +88,24 @@ public class AdapterDB {
                 + "'" + company.date + "', "
                 + "'" + company.email + "', "
                 + "'" + company.taxCode + "', "
-                + company.idDistrict + ")";
+                + company.idDistrict + ","
+                + "'" + company.dateInput + "')";
+        executeUpdate(query);
+    }
+
+    public static boolean isExists(String taxCode){
         try {
-            String checkQuery = "select * from companies where link like '" + company.link + "'";
+            String checkQuery = "select * from companies where tax_code like '%" + taxCode + "%'";
             ResultSet resultSet = null;
             resultSet = statement.executeQuery(checkQuery);
             if(resultSet.next()){
-                return;
+                return true;
             }
         } catch (SQLException e) {
             e.printStackTrace();
+            return true;
         }
-        executeUpdate(query);
+        return false;
     }
 
     //TO-DO 
@@ -108,7 +116,7 @@ public class AdapterDB {
         try {
             while (resultSet.next()) {
                 Company company = new Company();
-                company.id              = "" + cnt++;
+                company.id              = resultSet.getString(ID + 1);
                 company.name            = resultSet.getString(NAME + 1);
                 company.representative  = resultSet.getString(REPRESENTATIVE + 1);
                 company.phoneNumber     = resultSet.getString(PHONE_NUMBER + 1);
