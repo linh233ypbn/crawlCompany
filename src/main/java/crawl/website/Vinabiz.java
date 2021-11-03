@@ -5,6 +5,7 @@ import module.Commune;
 import module.Company;
 import module.District;
 import module.Info;
+import org.apache.commons.codec.binary.Base64;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -27,11 +28,14 @@ public class Vinabiz {
     public static final String LOGIN_URL = "https://vinabiz.org/account/login";
     public static final String EMAIL = "thanhngociso99@gmail.com";
     public static final String PASSWORD = "Yenphong99@";
+
     public static ArrayList<Company> allCompanies = null;
     public static Document doc = null;
 
     public static WebDriver driver;
     public static int cnt;
+
+    private static String base64login = new String(Base64.encodeBase64((EMAIL + ":" + PASSWORD).getBytes()));
 
     public Vinabiz(){
         System.setProperty("webdriver.chrome.driver", "chromedriver.exe");
@@ -49,6 +53,9 @@ public class Vinabiz {
 
         webElement = driver.findElement(By.xpath("//button[contains(@class,'btn btn-primary')]"));
         webElement.click();
+
+        String login = EMAIL + ":" + PASSWORD;
+
 
         cnt = 0;
     }
@@ -70,7 +77,7 @@ public class Vinabiz {
 //            getCompany(provinceUrl, 130, 200); //Long An
 //            getCompany(provinceUrl, 600, 800); //Hai Phong
 //            getCompany(provinceUrl, 8000, 8392); //Ha Noi
-            getCompany(provinceUrl, 8330, 8392);
+            getCompany(provinceUrl, 3000, 9500);
             //AdapterDB.addCompanies(allCompanies);
         } catch (Exception e) {
             e.printStackTrace();
@@ -169,7 +176,7 @@ public class Vinabiz {
         int TRY = 1;
         while(TRY++ <= 6){
             try {
-                doc = Jsoup.connect(url).timeout(15000).get();
+                doc = Jsoup.connect(url).timeout(15000).header("Authorization", "Basic " + base64login).get();
                 return true;
             } catch (IOException e) {
                 System.err.println("Failed to load HTML + [" + url + "]");
