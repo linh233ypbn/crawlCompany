@@ -193,6 +193,39 @@ public class ExcelHelper {
         }
     }
 
+    public static void importFromExcelFile(String fileName) throws Exception {
+        Scanner sc = new Scanner(System.in);
+
+        FileInputStream fis = new FileInputStream(new File(fileName));
+        XSSFWorkbook wb = new XSSFWorkbook(fis);
+        XSSFSheet sheet = wb.getSheetAt(0);
+        FormulaEvaluator formulaEvaluator = wb.getCreationHelper().createFormulaEvaluator();
+        int index = 1;
+        for (Row row : sheet) {
+            if (index++ == 1) continue;
+            int ite = 0;
+            String[] value = new String[11];
+            for (Cell cell : row)    //iteration over cell using for each loop
+            {
+                switch (cell.getCellType()){
+                    case Cell.CELL_TYPE_NUMERIC:
+                        value[ite] = (int) cell.getNumericCellValue() + "";
+                        break;
+                    case Cell.CELL_TYPE_STRING:
+                        value[ite] = cell.getStringCellValue();
+                        break;
+                }
+                if(value[ite] == null || value[ite].isEmpty()){
+                    value[ite] = "";
+                }
+                ite++;
+            }
+            for(String s : value){
+                System.out.println(s);
+            }
+        }
+    }
+
     public static void readExcelFile(String filePath, Statement statement, String fileName, String districtId) throws Exception {
         Scanner sc = new Scanner(System.in);
 
@@ -201,9 +234,8 @@ public class ExcelHelper {
         XSSFSheet sheet = wb.getSheetAt(1);
         FormulaEvaluator formulaEvaluator = wb.getCreationHelper().createFormulaEvaluator();
         int index = 1;
-        for (Row row : sheet)
-        {
-            if(index++ == 1) continue;
+        for (Row row : sheet) {
+            if (index++ == 1) continue;
             int ite = 0;
             String[] value = new String[11];
             for (Cell cell : row)    //iteration over cell using for each loop
@@ -219,45 +251,44 @@ public class ExcelHelper {
             }
             String query = "";
             value[COLUMN_INDEX_NAME] = value[COLUMN_INDEX_NAME].replace('\'', '`');
-            try{
+            try {
                 String date[] = value[7].split("/");
                 value[7] = date[2] + "-" + date[1] + "-" + date[0];
-            } catch (Exception e){
-                value[7] = "null";
+            } catch (Exception e) {
+                value[7] = "";
             }
             try {
-            query = "select * from companies where link like '" + value[COLUMN_INDEX_LINK] + "'";
-            ResultSet resultSet = statement.executeQuery(query);
-            if(resultSet.next()){
-                continue;
-            }
-            if(value[7].equals("null")){
-                query = "insert into companies value(null, '" + value[COLUMN_INDEX_NAME] + "',"
-                        + "'" + value[COLUMN_INDEX_REPRESENTATIVE] + "',"
-                        + "'" + value[3] + "',"
-                        + "'" + value[4] + "',"
-                        + "'" + value[5] + "',"
-                        + "'" + value[6] + "',"
-                        +       value[7] + ","
-                        + "'" + value[8] + "',"
-                        + "'" + value[9] + "',"
-                        + districtId + ")";
-            }
-            else {
-                query = "insert into companies value(null, '" + value[COLUMN_INDEX_NAME] + "',"
-                        + "'" + value[COLUMN_INDEX_REPRESENTATIVE] + "',"
-                        + "'" + value[3] + "',"
-                        + "'" + value[4] + "',"
-                        + "'" + value[5] + "',"
-                        + "'" + value[6] + "',"
-                        + "'" + value[7] + "',"
-                        + "'" + value[8] + "',"
-                        + "'" + value[9] + "',"
-                        + districtId + ")";
-            }
+                query = "select * from companies where link like '" + value[COLUMN_INDEX_LINK] + "'";
+                ResultSet resultSet = statement.executeQuery(query);
+                if (resultSet.next()) {
+                    continue;
+                }
+                if (value[7].equals("null")) {
+                    query = "insert into companies value(null, '" + value[COLUMN_INDEX_NAME] + "',"
+                            + "'" + value[COLUMN_INDEX_REPRESENTATIVE] + "',"
+                            + "'" + value[3] + "',"
+                            + "'" + value[4] + "',"
+                            + "'" + value[5] + "',"
+                            + "'" + value[6] + "',"
+                            + value[7] + ","
+                            + "'" + value[8] + "',"
+                            + "'" + value[9] + "',"
+                            + districtId + ")";
+                } else {
+                    query = "insert into companies value(null, '" + value[COLUMN_INDEX_NAME] + "',"
+                            + "'" + value[COLUMN_INDEX_REPRESENTATIVE] + "',"
+                            + "'" + value[3] + "',"
+                            + "'" + value[4] + "',"
+                            + "'" + value[5] + "',"
+                            + "'" + value[6] + "',"
+                            + "'" + value[7] + "',"
+                            + "'" + value[8] + "',"
+                            + "'" + value[9] + "',"
+                            + districtId + ")";
+                }
                 statement.executeUpdate(query);
                 System.out.println("Success + 1");
-            } catch (Exception e){
+            } catch (Exception e) {
                 System.err.println(query);
                 e.printStackTrace();
             }

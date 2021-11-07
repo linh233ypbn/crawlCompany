@@ -24,8 +24,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Vinabiz {
-    public static final String BASE_URL = "https://vinabiz.org";
-    public static final String LOGIN_URL = "https://vinabiz.org/account/login";
+    public static final String BASE_URL = "https://vinabiz.us";
+    public static final String LOGIN_URL = "https://vinabiz.us/account/login";
     public static final String EMAIL = "thanhngociso99@gmail.com";
     public static final String PASSWORD = "Yenphong99@";
 
@@ -40,7 +40,7 @@ public class Vinabiz {
     public Vinabiz(){
         System.setProperty("webdriver.chrome.driver", "chromedriver.exe");
         System.setProperty("webdriver.gecko.driver", "geckodriver.exe");
-        allCompanies = new ArrayList<>();
+        allCompanies = new ArrayList();
 
         driver = new ChromeDriver();
         driver.get(LOGIN_URL);
@@ -62,7 +62,7 @@ public class Vinabiz {
 
     public void crawlProvince(String provinceUrl){
         String provinceName = "empty";
-        provinceUrl = "https://vinabiz.org" + provinceUrl;
+        provinceUrl = BASE_URL + provinceUrl;
         parseHTMLFrom( provinceUrl);
         try {
             provinceName = doc.getElementsByClass("page-title txt-color-blueDark")
@@ -70,14 +70,7 @@ public class Vinabiz {
                     .childNode(7)
                     .childNode(1)
                     .childNode(0).toString();
-
-            //getCompany(provinceUrl, 13269, 13500); HCM
-//            getCompany(provinceUrl, 16300, 16400);
-//            getCompany(provinceUrl, 80, 100);
-//            getCompany(provinceUrl, 130, 200); //Long An
-//            getCompany(provinceUrl, 600, 800); //Hai Phong
-//            getCompany(provinceUrl, 8000, 8392); //Ha Noi
-            getCompany(provinceUrl, 3000, 9500);
+            getCompany(provinceUrl, 4810, 5500);
             //AdapterDB.addCompanies(allCompanies);
         } catch (Exception e) {
             e.printStackTrace();
@@ -262,7 +255,7 @@ public class Vinabiz {
     }
 
     public String getIDDistrictFromAddress(String address){
-        String query = "select iddistrict from district where district_name like '" + address + "'";
+        String query = "select district_id from districts where district_name like '" + address + "'";
         String idDistrict = AdapterDB.getInfoQuery(query);
         return idDistrict;
     }
@@ -326,4 +319,37 @@ public class Vinabiz {
             AdapterDB.executeUpdate("update companies set tax_code = '" + taxCode + "' where id = " + company.id + "");
         }
     }
+
+    public void getListProvince(){
+
+        parseHTMLFrom(BASE_URL);
+        Elements provinces = doc.getElementsByClass("btn btn-labeled btn-default btn-block");
+
+        provinces.forEach(province -> {
+
+            String provinceName = province.child(1).childNode(0).childNode(0).toString();
+            System.out.println("PROVINCE: " + provinceName);
+
+            String provinceDetailsURL = BASE_URL + "//" + province.attributes().get("href");
+            parseHTMLFrom(provinceDetailsURL);
+
+            AdapterDB adapterDB = new AdapterDB();
+            AdapterDB.executeUpdate("insert into provinces values(null, '" + provinceName + "');");
+            String provinceId = AdapterDB.getProvinceIDByName(provinceName);
+
+            Elements districts = doc.getElementsByClass("btn btn-labeled btn-default btn-block");
+            districts.forEach(district -> {
+                try{
+                    String districtName = district.child(1).childNode(0).childNode(0).toString();
+                    System.out.println(districtName);
+
+                    AdapterDB.executeUpdate("insert into districts values(null, '" + districtName + "', " + provinceId + ")");
+                } catch (IndexOutOfBoundsException e){
+                    System.out.println("FAIL: " + provinceDetailsURL);
+                }
+            });
+        });
+    }
+
+
 }
