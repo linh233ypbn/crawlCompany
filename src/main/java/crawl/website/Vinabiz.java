@@ -70,7 +70,7 @@ public class Vinabiz {
                     .childNode(7)
                     .childNode(1)
                     .childNode(0).toString();
-            getCompany(provinceUrl, 4810, 5500);
+            getCompany(provinceUrl, 12500, 12501);
             //AdapterDB.addCompanies(allCompanies);
         } catch (Exception e) {
             e.printStackTrace();
