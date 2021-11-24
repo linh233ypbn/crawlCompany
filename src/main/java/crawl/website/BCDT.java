@@ -24,16 +24,33 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+
+import static java.sql.DriverManager.getConnection;
 
 public class BCDT {
     public static final String BASE_URL = "https://bocaodientu.dkkd.gov.vn/";
     public static WebDriver driver;
 
     public static final String NEW_TYPE = "NEW";
+
+    private static String DB_URL = "jdbc:mysql://localhost:3306/db_companies";
+    private static String USER_NAME = "root";
+    private static String PASSWORD = "Ijykqs8w@";
+    private static Connection conn;
+    private static Statement statement;
+    private static ResultSet resultSet;
+    private static int resultUpdate;
+    private static String phone;
+    private static String email;
+
     public static void main(String[] args) throws Exception {
+        connectDb();
         goToListCompany();
         int currentPage = 1;
         while(currentPage <= 25){
@@ -52,6 +69,15 @@ public class BCDT {
                 }
                 currentPage += 5;
             }
+        }
+    }
+
+    public static void connectDb(){
+        try {
+            conn = getConnection(DB_URL, USER_NAME, PASSWORD);
+            statement = conn.createStatement();
+        } catch (Exception ex) {
+            ex.printStackTrace();
         }
     }
 
@@ -102,8 +128,8 @@ public class BCDT {
         File file = new File(BCDTXPath.PDF_FILE_PATH);
         PDDocument document = PDDocument.load(file);
         String[] arr = new PDFTextStripper().getText(document).split("\n");
-        String phone = "";
-        String email = "";
+        phone = "";
+        email = "";
         for(int i = 0; i < arr.length; i++){
             if(arr[i].startsWith("Email:")){
                 phone = arr[i - 1].replace("\r", "");
@@ -146,6 +172,32 @@ public class BCDT {
             downloadButtons.get(i - 1).click();
             String representative = getNameFromPDF();
             System.out.println(name + " | " + code + " | " + province + " | " + representative);
+            String link = "";
+            String date = info[0].substring(0, 10);
+            String day = date.split("/")[0];
+            String month = date.split("/")[1];
+            String year = date.split("/")[2];
+            date = year + "-" + month + "-" + day;
+            if(email.equals("Email: ")) email = "null";
+
+
+            String query = "insert into companies value (null, "
+                    + "'" + name + "', "
+                    + "'" + representative + "', "
+                    + "'" + phone + "', "
+                    + "'" + province + "', "
+                    + "'" + link + "', "
+                    + "'" + date + "', "
+                    + "'" + email + "', "
+                    + "'" + code + "', "
+                    + "'" + province + "', "
+                    + "'" + java.time.LocalDate.now().toString() + "')";
+            try {
+                resultUpdate = statement.executeUpdate(query);
+            } catch (Exception ex) {
+                System.err.println("FAILED: " + query);
+                ex.printStackTrace();
+            }
         }
 
 //        List<WebElement> elements = driver.findElements(By.xpath(BCDTXPath.FindPublish.LIST_PDF));
