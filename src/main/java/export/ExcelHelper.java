@@ -1,7 +1,9 @@
 package export;
 
+import com.mongodb.Mongo;
 import crawl.website.Vinabiz;
 import module.Company;
+import module.MongoCompany;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
@@ -66,6 +68,28 @@ public class ExcelHelper {
         System.out.println("Done!!!");
     }
 
+    public static void exportMongoCompany(ArrayList<MongoCompany> companies) throws IOException {
+        int rowIndex = 0;
+        writeMongoHeader(sheet, rowIndex);
+        rowIndex++;
+
+        for (MongoCompany company : companies) {
+            // Create row
+            Row row = sheet.createRow(rowIndex);
+            // Write data on row
+            writeMongoBook(company, row, rowIndex);
+            rowIndex++;
+        }
+
+        // Auto resize column witdth
+        int numberOfColumn = sheet.getRow(0).getPhysicalNumberOfCells();
+        autoSizeColumn(sheet, numberOfColumn);
+
+        // Create file excel
+        createOutputFile(wb2007, path);
+        System.out.println("Done!!!");
+    }
+
     // Write header with format
     private static void writeHeader(Sheet sheet, int rowIndex) {
         // create CellStyle
@@ -112,6 +136,51 @@ public class ExcelHelper {
         cell.setCellValue("Email");
 
         cell = row.createCell(COLUMN_INDEX_TAXCODE);
+        cell.setCellStyle(cellStyle);
+        cell.setCellValue("Tax");
+    }
+
+    private static void writeMongoHeader(Sheet sheet, int rowIndex) {
+        // create CellStyle
+        CellStyle cellStyle = createStyleForHeader(sheet);
+
+        // Create row
+        Row row = sheet.createRow(rowIndex);
+
+        // Create cells
+        Cell cell = row.createCell(0);
+        cell.setCellStyle(cellStyle);
+        cell.setCellValue("Id");
+
+        cell = row.createCell(1);
+        cell.setCellStyle(cellStyle);
+        cell.setCellValue("Name");
+
+        cell = row.createCell(2);
+        cell.setCellStyle(cellStyle);
+        cell.setCellValue("Date Input");
+
+        cell = row.createCell(3);
+        cell.setCellStyle(cellStyle);
+        cell.setCellValue("Date of License");
+
+        cell = row.createCell(4);
+        cell.setCellStyle(cellStyle);
+        cell.setCellValue("Email");
+
+        cell = row.createCell(5);
+        cell.setCellStyle(cellStyle);
+        cell.setCellValue("Phone");
+
+        cell = row.createCell(6);
+        cell.setCellStyle(cellStyle);
+        cell.setCellValue("Address");
+
+        cell = row.createCell(7);
+        cell.setCellStyle(cellStyle);
+        cell.setCellValue("Director");
+
+        cell = row.createCell(8);
         cell.setCellStyle(cellStyle);
         cell.setCellValue("Tax");
     }
@@ -177,6 +246,55 @@ public class ExcelHelper {
 
         cell = row.createCell(COLUMN_INDEX_TAXCODE);
         cell.setCellValue(company.taxCode);
+    }
+
+    private static void writeMongoBook(MongoCompany company, Row row, int id) {
+        if (cellStyleFormatNumber == null) {
+            // Format number
+            short format = (short) BuiltinFormats.getBuiltinFormat("#,##0");
+            // DataFormat df = workbook.createDataFormat();
+            // short format = df.getFormat("#,##0");
+
+            //Create CellStyle
+            Workbook workbook = row.getSheet().getWorkbook();
+            cellStyleFormatNumber = workbook.createCellStyle();
+            cellStyleFormatNumber.setDataFormat(format);
+        }
+//        public String name;
+//        public String date_input;
+//        public String date_of_license;
+//        public String email;
+//        public String phone;
+//        public String address;
+//        public String director;
+//        public String business_code;
+
+        Cell cell = row.createCell(0);
+        cell.setCellValue(id);
+
+        cell = row.createCell(1);
+        cell.setCellValue(company.name);
+
+        cell = row.createCell(2);
+        cell.setCellValue(company.date_input);
+
+        cell = row.createCell(3);
+        cell.setCellValue(company.date_of_license);
+
+        cell = row.createCell(4);
+        cell.setCellValue(company.email);
+
+        cell = row.createCell(5);
+        cell.setCellValue(company.phone);
+
+        cell = row.createCell(6);
+        cell.setCellValue(company.address);
+
+        cell = row.createCell(7);
+        cell.setCellValue(company.director);
+
+        cell = row.createCell(8);
+        cell.setCellValue(company.business_code);
     }
 
     // Auto resize column width

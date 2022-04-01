@@ -1,6 +1,7 @@
 package adapter;
 
 import module.Company;
+import module.MongoCompany;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -33,6 +34,15 @@ public class AdapterDB {
     public AdapterDB() {
         try {
             conn = getConnection(DB_URL, USER_NAME, PASSWORD);
+            statement = conn.createStatement();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    public AdapterDB(String url) {
+        try {
+            conn = getConnection(url, USER_NAME, PASSWORD);
             statement = conn.createStatement();
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -126,6 +136,38 @@ public class AdapterDB {
                 company.date            = resultSet.getString(DATE + 1);
                 company.email           = resultSet.getString(EMAIL + 1);
                 company.taxCode         = resultSet.getString(TAX_CODE + 1);
+                companies.add(company);
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        return companies;
+    }
+
+    public static ArrayList<MongoCompany> getMongoCompanies(String query) {
+        ArrayList<MongoCompany> companies = new ArrayList<>();
+        executeQuery(query);
+        int cnt = 1;
+        try {
+            while (resultSet.next()) {
+//                public String name;
+//                public String date_input;
+//                public String date_of_license;
+//                public String email;
+//                public String phone;
+//                public String address;
+//                public String director;
+//                public String business_code;
+                MongoCompany company = new MongoCompany(
+                        resultSet.getString(1),
+                        resultSet.getString(2),
+                        resultSet.getString(3),
+                        resultSet.getString(4),
+                        resultSet.getString(5),
+                        resultSet.getString(6),
+                        resultSet.getString(7),
+                        resultSet.getString(8)
+                );
                 companies.add(company);
             }
         } catch (Exception ex) {

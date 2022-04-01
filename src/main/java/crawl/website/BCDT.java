@@ -39,7 +39,7 @@ public class BCDT {
 
     public static final String NEW_TYPE = "NEW";
 
-    private static String DB_URL = "jdbc:mysql://localhost:3306/db_companies";
+    private static String DB_URL = "jdbc:mysql://localhost:3306/db_bcdt";
     private static String USER_NAME = "root";
     private static String PASSWORD = "Ijykqs8w@";
     private static Connection conn;
